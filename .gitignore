@@ -1,0 +1,34 @@
+# Secrets
+**/.env
+**/.env.*
+!.env.example
+
+# Python
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+**/.venv/
+**/venv/
+
+# Node / Vite
+**/node_modules/
+**/dist/
+**/build/
+**/.vite/
+
+# Logs / temp
+**/*.log
+backend/server.out
+backend/server.err
+
+# ML cache
+**/.deepface/
+
+# Optional docs
+cloud-architecture-guide.html
+README.md
+README2.md

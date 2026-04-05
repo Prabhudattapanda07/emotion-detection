@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+PyJWT
+python-multipart
+pymongo
+opencv-python
+numpy
+deepface
+librosa
+soundfile
+pydub
+apscheduler
+scipy

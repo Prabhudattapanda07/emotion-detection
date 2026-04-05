@@ -1,0 +1,87 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; }
+
+  body {
+    background: #07090f;
+    color: #e2e8f0;
+    font-family: 'DM Sans', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: #0e1320; }
+  ::-webkit-scrollbar-thumb { background: #1e2a42; border-radius: 2px; }
+}
+
+@layer components {
+  .glass {
+    background: rgba(14, 19, 32, 0.7);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(30, 42, 66, 0.8);
+  }
+
+  .btn-primary {
+    @apply bg-accent text-ink font-display font-700 px-6 py-3 rounded-xl 
+           hover:brightness-110 active:scale-95 transition-all duration-150
+           disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+
+  .btn-ghost {
+    @apply border border-border text-dim px-5 py-2.5 rounded-xl 
+           hover:border-accent hover:text-accent transition-all duration-150;
+  }
+
+  .card {
+    @apply bg-card border border-border rounded-2xl p-6;
+  }
+
+  .tag {
+    @apply text-xs font-mono px-2 py-0.5 rounded-md border;
+  }
+
+  .emotion-chip {
+    @apply inline-flex items-center gap-2 px-4 py-2 rounded-full font-display font-600 text-sm;
+  }
+}
+
+@layer utilities {
+  .font-600 { @apply font-semibold; }
+  .font-700 { @apply font-bold; }
+  .font-800 { @apply font-extrabold; }
+}
+
+/* Scanning line animation for camera */
+@keyframes scan {
+  0%   { top: 0; }
+  100% { top: 100%; }
+}
+.scan-line {
+  position: absolute;
+  left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, #00d4ff, transparent);
+  animation: scan 2s linear infinite;
+  pointer-events: none;
+}
+
+/* Waveform bars */
+@keyframes wave {
+  0%, 100% { transform: scaleY(0.3); }
+  50%       { transform: scaleY(1); }
+}
+.wave-bar {
+  width: 3px;
+  border-radius: 3px;
+  background: #00d4ff;
+  animation: wave 1s ease-in-out infinite;
+}
+
+/* Pulse ring */
+@keyframes ping-slow {
+  0%    { transform: scale(1);    opacity: 0.6; }
+  100%  { transform: scale(1.8);  opacity: 0; }
+}
+.ping-slow { animation: ping-slow 2s cubic-bezier(0,0,0.2,1) infinite; }
