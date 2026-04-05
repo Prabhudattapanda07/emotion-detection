@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>EmotiCloud — Cloud Architecture & Documentation</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg:     #06080f;
+    --panel:  #0c1120;
+    --card:   #111827;
+    --border: #1a2540;
+    --accent: #00c8f8;
+    --teal:   #00b89c;
+    --amber:  #f59e0b;
+    --rose:   #f43f5e;
+    --mongo:  #00ed64;
+    --dim:    #6b7fa3;
+    --muted:  #3a4a6a;
+    --white:  #e8eef8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--white);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  .display { font-family: 'Syne', sans-serif; }
+
+  /* ── Nav ── */
+  nav {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(6,8,15,0.85);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 2rem;
+    padding: 0 2rem; height: 60px;
+  }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-icon {
+    width: 34px; height: 34px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--teal) 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .logo-text { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 16px; }
+  .logo-sub { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--dim); }
+  nav .tabs { display: flex; gap: 4px; margin-left: auto; }
+  .tab {
+    padding: 6px 14px; border-radius: 8px; font-size: 13px;
+    font-family: 'Syne', sans-serif; font-weight: 600;
+    color: var(--dim); cursor: pointer; border: none; background: none;
+    transition: all 0.15s;
+  }
+  .tab:hover { color: var(--white); background: rgba(255,255,255,0.05); }
+  .tab.active { color: var(--accent); background: rgba(0,200,248,0.08); }
+
+  /* ── Sections ── */
+  .section { display: none; padding: 2.5rem 2rem; max-width: 1100px; margin: 0 auto; }
+  .section.active { display: block; animation: fadeUp 0.4s ease-out; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Architecture Diagram ── */
+  .arch-grid {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr;
+    gap: 0; align-items: center;
+    margin: 2rem 0;
+  }
+  .arch-node {
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    background: var(--card);
+    position: relative;
+    cursor: pointer;
+    transition: all 0.25s;
+  }
+  .arch-node:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,200,248,0.12); }
+  .arch-node .node-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px; text-transform: uppercase; letter-spacing: .1em;
+    margin-bottom: 8px;
+  }
+  .arch-node .node-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+  .arch-node .node-sub { font-size: 12px; color: var(--dim); }
+  .arch-node .node-badge {
+    position: absolute; top: -8px; right: 12px;
+    font-family: 'JetBrains Mono', monospace; font-size: 9px;
+    padding: 2px 8px; border-radius: 20px; border: 1px solid;
+  }
+  .arch-arrow {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    padding: 0 8px;
+  }
+  .arch-arrow .arrow-label {
+    font-family: 'JetBrains Mono', monospace; font-size: 9px;
+    color: var(--dim); text-align: center; line-height: 1.4;
+  }
+  .arrow-line {
+    width: 48px; height: 2px; position: relative;
+    background: linear-gradient(90deg, var(--muted), var(--accent));
+  }
+  .arrow-line::after {
+    content: ''; position: absolute; right: -1px; top: -4px;
+    width: 0; height: 0;
+    border-left: 8px solid var(--accent);
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+  }
+
+  /* Colour variants */
+  .node-user    { border-color: rgba(0,200,248,0.3); }
+  .node-user .node-tag { color: var(--accent); }
+  .node-vercel  { border-color: rgba(0,184,156,0.3); }
+  .node-vercel .node-tag { color: var(--teal); }
+  .node-api     { border-color: rgba(245,158,11,0.3); }
+  .node-api .node-tag { color: var(--amber); }
+  .node-mongodb { border-color: rgba(0,237,100,0.35); }
+  .node-mongodb .node-tag { color: var(--mongo); }
+  .badge-vercel { color: var(--teal); border-color: rgba(0,184,156,0.4); background: rgba(0,184,156,0.05); }
+  .badge-render { color: var(--amber); border-color: rgba(245,158,11,0.4); background: rgba(245,158,11,0.05); }
+  .badge-mongodb { color: var(--mongo); border-color: rgba(0,237,100,0.45); background: rgba(0,237,100,0.06); }
+
+  /* ── Cloud principle cards ── */
+  .principles { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-top: 1.5rem; }
+  .principle-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 20px; cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden;
+  }
+  .principle-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  }
+  .principle-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .principle-card .p-num {
+    font-family: 'Syne', sans-serif; font-weight: 800; font-size: 40px;
+    opacity: 0.06; position: absolute; right: 16px; top: 8px; line-height: 1;
+  }
+  .principle-card .p-icon { font-size: 22px; margin-bottom: 10px; }
+  .principle-card .p-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; margin-bottom: 6px; }
+  .principle-card .p-theory { font-size: 12px; color: var(--dim); margin-bottom: 10px; line-height: 1.5; }
+  .principle-card .p-impl { font-size: 12px; color: var(--white); line-height: 1.6; }
+  .principle-card .p-code {
+    margin-top: 10px; font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    color: var(--accent); background: rgba(0,200,248,0.05); border: 1px solid rgba(0,200,248,0.15);
+    border-radius: 8px; padding: 8px 10px; line-height: 1.6;
+  }
+
+  /* ── Data flow ── */
+  .flow-steps { display: flex; flex-direction: column; gap: 0; margin-top: 1.5rem; }
+  .flow-step {
+    display: flex; gap: 20px; padding: 20px 0;
+    border-left: 2px solid var(--border); margin-left: 20px;
+    padding-left: 28px; position: relative;
+  }
+  .flow-step::before {
+    content: attr(data-num);
+    position: absolute; left: -13px; top: 20px;
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--card); border: 2px solid var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600;
+    color: var(--accent);
+  }
+  .flow-step .fs-label {
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px;
+    color: var(--white); min-width: 180px;
+  }
+  .flow-step .fs-detail { font-size: 12px; color: var(--dim); line-height: 1.6; }
+  .flow-step .fs-detail code {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    color: var(--amber); background: rgba(245,158,11,0.08);
+    padding: 1px 5px; border-radius: 4px;
+  }
+
+  /* ── Code block ── */
+  .code-block {
+    background: #080c16; border: 1px solid var(--border); border-radius: 12px;
+    overflow: hidden; margin: 12px 0;
+  }
+  .code-header {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 16px; border-bottom: 1px solid var(--border);
+    background: rgba(255,255,255,0.02);
+  }
+  .code-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .code-filename { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--dim); margin-left: 4px; }
+  .code-block pre {
+    padding: 16px; font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px; line-height: 1.7; overflow-x: auto; color: #c9d5ee;
+  }
+  .kw { color: #7aa2f7; }
+  .fn { color: #7dcfff; }
+  .st { color: #9ece6a; }
+  .cm { color: #565f89; font-style: italic; }
+  .nu { color: #ff9e64; }
+  .cl { color: #e0af68; }
+
+  /* ── Table ── */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 1rem; }
+  th { font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase;
+       letter-spacing: .08em; color: var(--dim); padding: 10px 14px; text-align: left;
+       border-bottom: 1px solid var(--border); }
+  td { padding: 11px 14px; border-bottom: 1px solid rgba(26,37,64,0.5); vertical-align: top; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 20px;
+    font-family: 'JetBrains Mono', monospace; font-size: 10px; border: 1px solid;
+  }
+  .b-accent { color: var(--accent); border-color: rgba(0,200,248,0.3); background: rgba(0,200,248,0.06); }
+  .b-teal   { color: var(--teal);   border-color: rgba(0,184,156,0.3); background: rgba(0,184,156,0.06); }
+  .b-amber  { color: var(--amber);  border-color: rgba(245,158,11,0.3); background: rgba(245,158,11,0.06); }
+  .b-rose   { color: var(--rose);   border-color: rgba(244,63,94,0.3);  background: rgba(244,63,94,0.06); }
+
+  /* ── Viva section ── */
+  .viva-list { display: flex; flex-direction: column; gap: 16px; margin-top: 1.5rem; }
+  .viva-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden;
+    cursor: pointer;
+  }
+  .viva-q {
+    padding: 16px 20px; display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px;
+    transition: background 0.15s;
+  }
+  .viva-q:hover { background: rgba(255,255,255,0.02); }
+  .viva-q .q-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--accent); margin-right: 8px; }
+  .viva-a {
+    max-height: 0; overflow: hidden; transition: max-height 0.35s ease-out;
+  }
+  .viva-a.open { max-height: 400px; }
+  .viva-a-inner {
+    padding: 0 20px 18px; font-size: 13px; color: #8899bb; line-height: 1.7;
+    border-top: 1px solid var(--border);
+  }
+  .viva-a-inner strong { color: var(--white); }
+  .chevron { transition: transform 0.3s; color: var(--dim); font-size: 18px; }
+  .chevron.open { transform: rotate(180deg); }
+
+  /* ── Section header ── */
+  .sec-header { margin-bottom: 1.5rem; }
+  .sec-overline {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    text-transform: uppercase; letter-spacing: .15em; color: var(--accent);
+    margin-bottom: 6px;
+  }
+  .sec-title { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 26px; }
+  .sec-sub { font-size: 14px; color: var(--dim); margin-top: 6px; line-height: 1.6; }
+
+  /* ── Deployment steps ── */
+  .deploy-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-top: 1.5rem; }
+  .deploy-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px;
+  }
+  .deploy-card .dc-platform {
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; margin-bottom: 4px;
+  }
+  .deploy-card .dc-role { font-size: 12px; color: var(--dim); margin-bottom: 14px; }
+  .deploy-card ol { padding-left: 18px; font-size: 13px; color: #8899bb; line-height: 2; }
+  .deploy-card ol li strong { color: var(--white); }
+</style>
+</head>
+<body>
+
+<!-- ── Navigation ────────────────────────────────────────── -->
+<nav>
+  <div class="logo">
+    <div class="logo-icon">⚡</div>
+    <div>
+      <div class="logo-text">EmotiCloud</div>
+      <div class="logo-sub">Cloud Emotion Detection System</div>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" onclick="show('arch')">Architecture</button>
+    <button class="tab" onclick="show('principles')">Cloud Principles</button>
+    <button class="tab" onclick="show('dataflow')">Data Flow</button>
+    <button class="tab" onclick="show('features')">Features</button>
+    <button class="tab" onclick="show('deploy')">Deployment</button>
+    <button class="tab" onclick="show('viva')">Viva Q&A</button>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!--  SECTION 1 — Architecture                             -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="section active" id="arch">
+  <div class="sec-header">
+    <div class="sec-overline">System Design</div>
+    <div class="sec-title">Cloud Architecture</div>
+    <div class="sec-sub">Four-tier cloud deployment — User → CDN Frontend → Cloud API → Managed Database & Storage</div>
+  </div>
+
+  <!-- Diagram -->
+  <div class="arch-grid">
+    <!-- User -->
+    <div class="arch-node node-user">
+      <div class="node-tag">Client Layer</div>
+      <div class="node-title">👤 User Device</div>
+      <div class="node-sub">Browser · Camera · Microphone<br>React SPA (Vite)</div>
+    </div>
+
+    <!-- Arrow 1 -->
+    <div class="arch-arrow">
+      <div class="arrow-label">HTTPS<br>image/audio</div>
+      <div class="arrow-line"></div>
+    </div>
+
+    <!-- Vercel -->
+    <div class="arch-node node-vercel">
+      <div class="node-badge badge-vercel">Vercel CDN</div>
+      <div class="node-tag">Presentation Layer</div>
+      <div class="node-title">🌐 Frontend</div>
+      <div class="node-sub">React + Vite + Tailwind<br>4 pages · Axios API calls</div>
+    </div>
+
+    <!-- Arrow 2 -->
+    <div class="arch-arrow">
+      <div class="arrow-label">REST API<br>JSON + FormData</div>
+      <div class="arrow-line"></div>
+    </div>
+
+    <!-- FastAPI -->
+    <div class="arch-node node-api">
+      <div class="node-badge badge-render">Render Cloud</div>
+      <div class="node-tag">Business Logic Layer</div>
+      <div class="node-title">⚡ FastAPI Backend</div>
+      <div class="node-sub">OpenCV · DeepFace · Librosa<br>APScheduler · PyMongo + GridFS</div>
+    </div>
+  </div>
+
+  <!-- Second row — MongoDB Atlas -->
+  <div style="display:flex; justify-content:flex-end; gap:16px; margin-top:16px;">
+    <div style="display:flex; flex-direction:column; align-items:center; gap:0; margin-right:0; align-self:flex-start; padding-top:20px;">
+      <div style="width:2px; height:40px; background: linear-gradient(180deg, var(--amber), var(--mongo));"></div>
+      <div style="font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--dim); text-align:center; margin:4px 0;">MongoDB<br>Atlas + PyMongo</div>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; max-width:560px; width:100%;">
+      <div class="arch-node node-mongodb">
+        <div class="node-badge badge-mongodb">Atlas DB</div>
+        <div class="node-tag">Data Layer · Cloud NoSQL</div>
+        <div class="node-title">🍃 Database</div>
+        <div class="node-sub" style="font-size:11px;">Collection: emotions<br>Collection: logs<br>Collection: system_stats</div>
+      </div>
+      <div class="arch-node node-mongodb">
+        <div class="node-badge badge-mongodb">GridFS</div>
+        <div class="node-tag">Data Layer · Binary Storage</div>
+        <div class="node-title">☁️ File Store</div>
+        <div class="node-sub" style="font-size:11px;">emotion_files.chunks<br>emotion_files.files<br>Served via GET /files/{id}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Feature summary -->
+  <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:2rem;">
+    <div style="background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px;">
+      <div style="font-size:10px; font-family:'JetBrains Mono',monospace; color:var(--accent); margin-bottom:6px;">COMPUTE</div>
+      <div style="font-size:13px; font-weight:600; font-family:'Syne',sans-serif;">On-Demand</div>
+      <div style="font-size:12px; color:var(--dim); margin-top:4px;">ML runs only when request arrives. No idle compute.</div>
+    </div>
+    <div style="background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px;">
+      <div style="font-size:10px; font-family:'JetBrains Mono',monospace; color:var(--teal); margin-bottom:6px;">STORAGE</div>
+      <div style="font-size:13px; font-weight:600; font-family:'Syne',sans-serif;">Zero Local Files</div>
+      <div style="font-size:12px; color:var(--dim); margin-top:4px;">Files go to MongoDB GridFS. Server RAM only — no local disk.</div>
+    </div>
+    <div style="background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px;">
+      <div style="font-size:10px; font-family:'JetBrains Mono',monospace; color:var(--amber); margin-bottom:6px;">SCALE</div>
+      <div style="font-size:13px; font-weight:600; font-family:'Syne',sans-serif;">Stateless API</div>
+      <div style="font-size:12px; color:var(--dim); margin-top:4px;">Each request is independent. Horizontal scaling ready.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!--  SECTION 2 — Cloud Principles                         -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="section" id="principles">
+  <div class="sec-header">
+    <div class="sec-overline">Academic Justification</div>
+    <div class="sec-title">Cloud Computing Principles</div>
+    <div class="sec-sub">How each NIST cloud characteristic is implemented in this specific project</div>
+  </div>
+
+  <div class="principles">
+
+    <div class="principle-card" style="border-top-color: var(--accent);">
+      <div class="p-num">01</div>
+      <div class="p-icon">⚡</div>
+      <div class="p-title">On-Demand Self-Service</div>
+      <div class="p-theory">Resources provisioned automatically without human interaction with service provider.</div>
+      <div class="p-impl">
+        POST /detect-face triggers a cloud worker on Render to run DeepFace. No admin needs to start anything. 
+        POST /detect-voice spins up Librosa MFCC processing instantly. Resources scale with load.
+      </div>
+      <div class="p-code">async def detect_face_emotion(file: UploadFile):<br>&nbsp;&nbsp;result = detect_emotion_from_image(file_bytes)<br>&nbsp;&nbsp;<span style="color:var(--teal)"># Cloud computes on-demand ↑</span></div>
+    </div>
+
+    <div class="principle-card" style="border-top-color: var(--teal);">
+      <div class="p-num">02</div>
+      <div class="p-icon">🌐</div>
+      <div class="p-title">Broad Network Access</div>
+      <div class="p-theory">Services available over network, accessed via standard mechanisms from any client platform.</div>
+      <div class="p-impl">
+        Vercel hosts the React frontend on a global CDN. Render exposes the FastAPI backend on a public HTTPS URL.
+        A user in Odisha and a user in Berlin access the same system via standard HTTP from any browser.
+      </div>
+      <div class="p-code">VITE_API_URL=https://emotion-api.onrender.com<br><span style="color:var(--teal)"># Public HTTPS — no VPN, no install</span></div>
+    </div>
+
+    <div class="principle-card" style="border-top-color: var(--amber);">
+      <div class="p-num">03</div>
+      <div class="p-icon">🔄</div>
+      <div class="p-title">Resource Pooling</div>
+      <div class="p-theory">Provider resources pooled to serve multiple consumers. Location independent.</div>
+      <div class="p-impl">
+        MongoDB Atlas serves all users from a shared managed cluster (collections + GridFS). 
+        Render runs the FastAPI process on shared cloud compute. Multiple users' requests 
+        are handled by the same worker pool transparently.
+      </div>
+      <div class="p-code">app.add_middleware(CORSMiddleware,<br>&nbsp;&nbsp;allow_origins=["*"])<br><span style="color:var(--teal)"># Any user, any origin</span></div>
+    </div>
+
+    <div class="principle-card" style="border-top-color: var(--rose);">
+      <div class="p-num">04</div>
+      <div class="p-icon">📈</div>
+      <div class="p-title">Rapid Elasticity / Scalability</div>
+      <div class="p-theory">Capabilities scale out/in rapidly, appearing unlimited to the consumer.</div>
+      <div class="p-impl">
+        FastAPI is stateless — Render can add worker instances with zero code change. 
+        Atlas scales with your cluster tier; GridFS stores large binaries in the same database. 
+        100 simultaneous emotion detection requests are handled as easily as 1.
+      </div>
+      <div class="p-code"><span style="color:var(--teal)"># No session, no in-memory state</span><br><span style="color:var(--teal)"># Each request is fully independent</span><br>result = detect_emotion_from_image(bytes)</div>
+    </div>
+
+    <div class="principle-card" style="border-top-color: var(--accent);">
+      <div class="p-num">05</div>
+      <div class="p-icon">📊</div>
+      <div class="p-title">Measured Service</div>
+      <div class="p-theory">Cloud systems automatically control and optimise resources. Usage monitored and reported.</div>
+      <div class="p-impl">
+        Every API call increments MongoDB counters via <code>$inc</code> on <code>system_stats</code> (total_requests, face_requests, voice_requests).
+        Events go to the <code>logs</code> collection. Admin panel reads live stats from Atlas.
+      </div>
+      <div class="p-code">db.system_stats.update_one(<br>&nbsp;&nbsp;{"_id": "usage"},<br>&nbsp;&nbsp;{"$inc": {"total_requests": 1, "face_requests": 1}},<br>&nbsp;&nbsp;upsert=True)</div>
+    </div>
+
+    <div class="principle-card" style="border-top-color: var(--teal);">
+      <div class="p-num">06</div>
+      <div class="p-icon">💾</div>
+      <div class="p-title">Cloud Storage (Zero Local I/O)</div>
+      <div class="p-theory">Data stored in managed cloud infrastructure — no dependency on local disk.</div>
+      <div class="p-impl">
+        File bytes arrive at FastAPI, stay in RAM, then <code>GridFS.put()</code> stores them on Atlas.
+        A public API URL (<code>/files/{id}</code>) is saved on the emotion document. No local filesystem.
+        Restart the server — no data loss. Data lives in the managed database.
+      </div>
+      <div class="p-code">oid = fs.put(file_bytes, content_type=ctype)<br>url = f"{API_PUBLIC_URL}/files/{oid}"<br><span style="color:var(--teal)"># GridFS on Atlas — no local write()</span></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!--  SECTION 3 — Data Flow                                -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="section" id="dataflow">
+  <div class="sec-header">
+    <div class="sec-overline">End-to-End Pipeline</div>
+    <div class="sec-title">Data Flow</div>
+    <div class="sec-sub">Trace a single emotion detection request from browser to MongoDB Atlas and back</div>
+  </div>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:2rem;">
+
+    <!-- Face flow -->
+    <div>
+      <div style="font-family:'Syne',sans-serif; font-weight:700; font-size:15px; color:var(--accent); margin-bottom:1rem; display:flex; align-items:center; gap:8px;">
+        📷 Face Detection Flow
+      </div>
+      <div class="flow-steps">
+        <div class="flow-step" data-num="1">
+          <div><div class="fs-label">Browser captures frame</div>
+          <div class="fs-detail">getUserMedia → canvas.toDataURL → <code>Blob</code> (JPEG, ~50KB)</div></div>
+        </div>
+        <div class="flow-step" data-num="2">
+          <div><div class="fs-label">Axios POST /detect-face</div>
+          <div class="fs-detail">FormData with image blob sent to <code>Render backend</code> over HTTPS</div></div>
+        </div>
+        <div class="flow-step" data-num="3">
+          <div><div class="fs-label">FastAPI decodes image</div>
+          <div class="fs-detail"><code>cv2.imdecode()</code> → numpy array → DeepFace.analyze() → emotion scores</div></div>
+        </div>
+        <div class="flow-step" data-num="4">
+          <div><div class="fs-label">Store in GridFS (Atlas)</div>
+          <div class="fs-detail"><code>GridFS.put()</code> → ObjectId; <code>file_url</code> = <code>API_PUBLIC_URL/files/{id}</code>. No local disk.</div></div>
+        </div>
+        <div class="flow-step" data-num="5">
+          <div><div class="fs-label">Save to MongoDB</div>
+          <div class="fs-detail"><code>emotions</code> collection: emotion, confidence, type, file_url, timestamp</div></div>
+        </div>
+        <div class="flow-step" data-num="6">
+          <div><div class="fs-label">JSON response to frontend</div>
+          <div class="fs-detail">record_id, emotion, confidence, all_scores, file_url displayed in UI</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Voice flow -->
+    <div>
+      <div style="font-family:'Syne',sans-serif; font-weight:700; font-size:15px; color:var(--amber); margin-bottom:1rem; display:flex; align-items:center; gap:8px;">
+        🎙️ Voice Detection Flow
+      </div>
+      <div class="flow-steps">
+        <div class="flow-step" data-num="1">
+          <div><div class="fs-label">Browser records audio</div>
+          <div class="fs-detail">MediaRecorder API → audio/webm blob → stop recording</div></div>
+        </div>
+        <div class="flow-step" data-num="2">
+          <div><div class="fs-label">Axios POST /detect-voice</div>
+          <div class="fs-detail">FormData with audio blob sent to <code>Render backend</code></div></div>
+        </div>
+        <div class="flow-step" data-num="3">
+          <div><div class="fs-label">Librosa loads audio</div>
+          <div class="fs-detail"><code>librosa.load()</code> → normalize → silence detection → 40 MFCC features</div></div>
+        </div>
+        <div class="flow-step" data-num="4">
+          <div><div class="fs-label">Feature mapping</div>
+          <div class="fs-detail">ZCR + spectral centroid + rolloff + chroma + tempo → emotion scores</div></div>
+        </div>
+        <div class="flow-step" data-num="5">
+          <div><div class="fs-label">Cloud storage + DB</div>
+          <div class="fs-detail">Audio → GridFS. Metadata → <code>emotions</code>. Usage counter <code>$inc</code> on <code>system_stats</code>.</div></div>
+        </div>
+        <div class="flow-step" data-num="6">
+          <div><div class="fs-label">Combine with face result</div>
+          <div class="fs-detail">POST /combine-emotions → weighted fusion (60% face + 40% voice) → final emotion</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Combine logic -->
+  <div style="margin-top:2rem;">
+    <div style="font-family:'Syne',sans-serif; font-weight:700; font-size:15px; margin-bottom:12px;">🔀 Weighted Emotion Fusion</div>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dot" style="background:#ff5f57;"></div>
+        <div class="code-dot" style="background:#febc2e;"></div>
+        <div class="code-dot" style="background:#28c840;"></div>
+        <div class="code-filename">utils/emotion_combiner.py</div>
+      </div>
+      <pre><span class="cm"># Face is more reliable — higher weight</span>
+FACE_WEIGHT  = <span class="nu">0.60</span>
+VOICE_WEIGHT = <span class="nu">0.40</span>
+
+<span class="kw">for</span> emotion <span class="kw">in</span> EMOTIONS:
+    combined[emotion] = (
+        FACE_WEIGHT  * face_scores[emotion] +
+        VOICE_WEIGHT * voice_scores[emotion]
+    )
+
+dominant = <span class="fn">max</span>(combined, key=combined.get)
+<span class="cm"># e.g. face=happy(0.8), voice=happy(0.6) → combined=happy(0.72)</span>
+<span class="cm"># e.g. face=happy(0.8), voice=sad(0.7)  → combined=happy(0.52)</span></pre>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!--  SECTION 4 — Features Table                           -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="section" id="features">
+  <div class="sec-header">
+    <div class="sec-overline">Implementation Details</div>
+    <div class="sec-title">Cloud Features Implemented</div>
+    <div class="sec-sub">Every feature mapped to its cloud principle and code location</div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Feature</th>
+        <th>Implementation</th>
+        <th>Cloud Principle</th>
+        <th>Code Location</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Face Emotion Detection</strong></td>
+        <td>OpenCV decode + DeepFace.analyze()</td>
+        <td><span class="badge b-accent">On-Demand Compute</span></td>
+        <td><code style="font-size:11px; font-family:'JetBrains Mono',monospace; color:var(--amber);">utils/face_utils.py</code></td>
+      </tr>
+      <tr>
+        <td><strong>Voice Emotion Detection</strong></td>
+        <td>Librosa MFCC + 6 acoustic features</td>
+        <td><span class="badge b-accent">On-Demand Compute</span></td>
+        <td><code style="font-size:11px; font-family:'JetBrains Mono',monospace; color:var(--amber);">utils/voice_utils.py</code></td>
+      </tr>
+      <tr>
+        <td><strong>Image/Audio File Storage</strong></td>
+        <td>GridFS on MongoDB Atlas (zero local disk)</td>
+        <td><span class="badge b-teal">Cloud Storage</span></td>
+        <td><code style="font-size:11px; font-family:'JetBrains Mono',monospace; color:var(--amber);">services/mongodb_service.py</code> + <code style="font-size:11px; font-family:'JetBrains Mono',monospace; color:var(--amber);">routes/files.py</code></td>
+      </tr>
+      <tr>
+        <td><strong>Metadata Persistence</strong></td>
+        <td>MongoDB — emotions, logs, system_stats</td>
+        <td><span class="badge b-teal">Cloud Database</span></td>
+        <td><code style="font-size:11px; font-family:'JetBrains Mono',monospace; color:var(--amber);">services/mongodb_service.py</code></td>
+      </tr>
+      <tr>
+        <td><strong>Real-Time History Fetch</strong></td>
+        <td>GET /get-history → MongoDB query</td>
+        <td><span class="badge b-teal">Real-Time DB</span></td>
+        <td><code style="font-size:11px; font-family:'JetBrains Mono',monospace; color:var(--amber);">routes/results.py</code></td>
+      </tr>
+      <tr>
+        <td><strong>Stateless API Backend</strong></td>
+        <td>No session state — all state in MongoDB Atlas</td>
+        <td><span class="badge b-accent">Horizontal Scaling</span></td>
+        <td><code style="font-size:11px; font-family:'JetBrains Mono',monospace; color:var(--amber);">main.py</code></td>
+      </tr>
+      <tr>
+        <td><strong>Background Auto-Cleanup</strong></td>
+        <td>APScheduler — daily 02:00 UTC, server-side</td>
+        <td><span class="badge b-amber">Background Tasks</span></td>
+        <td><code style="font-size:11px; font-family:'JetBrains Mono',monospace; color:var(--amber);">services/scheduler.py</code></td>
+      </tr>
+      <tr>
+        <td><strong>Usage Tracking</strong></td>
+        <td>MongoDB <code style="font-size:10px;">$inc</code> atomic counters</td>
+        <td><span class="badge b-amber">Measured Service</span></td>
+        <td><code style="font-size:11px; font-family:'JetBrains Mono',monospace; color:var(--amber);">services/mongodb_service.py</code></td>
+      </tr>
+      <tr>
+        <td><strong>Centralised Logging</strong></td>
+        <td>All API events → <code style="font-size:10px;">logs</code> collection</td>
+        <td><span class="badge b-teal">Cloud Observability</span></td>
+        <td><code style="font-size:11px; font-family:'JetBrains Mono',monospace; color:var(--amber);">services/mongodb_service.py</code></td>
+      </tr>
+      <tr>
+        <td><strong>Remote Admin</strong></td>
+        <td>/admin routes — toggle, bulk-delete, logs</td>
+        <td><span class="badge b-rose">Cloud Management</span></td>
+        <td><code style="font-size:11px; font-family:'JetBrains Mono',monospace; color:var(--amber);">routes/admin.py</code></td>
+      </tr>
+      <tr>
+        <td><strong>Weighted Emotion Fusion</strong></td>
+        <td>60% face + 40% voice → dominant emotion</td>
+        <td><span class="badge b-accent">AI Processing</span></td>
+        <td><code style="font-size:11px; font-family:'JetBrains Mono',monospace; color:var(--amber);">utils/emotion_combiner.py</code></td>
+      </tr>
+      <tr>
+        <td><strong>Global CDN Access</strong></td>
+        <td>Vercel edge network — frontend served globally</td>
+        <td><span class="badge b-teal">Remote Access</span></td>
+        <td>Vercel deployment config</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!--  SECTION 5 — Deployment                               -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="section" id="deploy">
+  <div class="sec-header">
+    <div class="sec-overline">Cloud Deployment</div>
+    <div class="sec-title">Deployment Steps</div>
+    <div class="sec-sub">Deploy all three tiers to cloud in under 30 minutes</div>
+  </div>
+
+  <div class="deploy-grid">
+
+    <div class="deploy-card" style="border-top: 2px solid var(--mongo);">
+      <div style="font-size:24px; margin-bottom:8px;">🍃</div>
+      <div class="dc-platform">MongoDB Atlas</div>
+      <div class="dc-role">Cloud DB + GridFS · Managed cluster</div>
+      <ol>
+        <li>Create a free (M0) cluster at <strong>mongodb.com/cloud/atlas</strong></li>
+        <li><strong>Database Access</strong> → create user + password</li>
+        <li><strong>Network Access</strong> → allow your IP (or <code>0.0.0.0/0</code> for dev only)</li>
+        <li><strong>Connect</strong> → Drivers → copy <strong>SRV connection string</strong></li>
+        <li>Set <strong>MONGODB_URI</strong> and <strong>MONGODB_DB_NAME</strong> in backend env</li>
+        <li>Set <strong>API_PUBLIC_URL</strong> to your API’s public HTTPS URL (same origin as media links)</li>
+      </ol>
+    </div>
+
+    <div class="deploy-card" style="border-top: 2px solid var(--amber);">
+      <div style="font-size:24px; margin-bottom:8px;">⚡</div>
+      <div class="dc-platform">Backend → Render</div>
+      <div class="dc-role">FastAPI Cloud API · On-Demand Compute</div>
+      <ol>
+        <li>Push <strong>backend/</strong> folder to GitHub</li>
+        <li>render.com → New → <strong>Web Service</strong></li>
+        <li>Connect GitHub repo, select backend folder</li>
+        <li>Build: <strong>pip install -r requirements.txt</strong></li>
+        <li>Start: <strong>uvicorn main:app --host 0.0.0.0 --port $PORT</strong></li>
+        <li>Add env vars: <strong>MONGODB_URI</strong>, <strong>MONGODB_DB_NAME</strong>, <strong>API_PUBLIC_URL</strong></li>
+        <li>Deploy → copy public URL</li>
+      </ol>
+    </div>
+
+    <div class="deploy-card" style="border-top: 2px solid var(--teal);">
+      <div style="font-size:24px; margin-bottom:8px;">🌐</div>
+      <div class="dc-platform">Frontend → Vercel</div>
+      <div class="dc-role">React CDN · Global Edge Network</div>
+      <ol>
+        <li>Push <strong>frontend/</strong> folder to GitHub</li>
+        <li>vercel.com → New Project → Import repo</li>
+        <li>Framework preset: <strong>Vite</strong></li>
+        <li>Set <strong>VITE_API_URL</strong> = your <strong>Render backend URL</strong> (match <strong>API_PUBLIC_URL</strong> host for images/audio)</li>
+        <li>Deploy → get public Vercel URL</li>
+        <li>Share URL — accessible globally 🌍</li>
+      </ol>
+    </div>
+
+  </div>
+
+  <!-- Environment variable reference -->
+  <div style="margin-top:2rem;">
+    <div style="font-family:'Syne',sans-serif; font-weight:700; font-size:15px; margin-bottom:12px;">Environment Variables Reference</div>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dot" style="background:#ff5f57;"></div>
+        <div class="code-dot" style="background:#febc2e;"></div>
+        <div class="code-dot" style="background:#28c840;"></div>
+        <div class="code-filename">backend/.env</div>
+      </div>
+      <pre>MONGODB_URI=<span class="st">mongodb+srv://USER:PASSWORD@cluster0.xxxxx.mongodb.net/?retryWrites=true&amp;w=majority</span>
+MONGODB_DB_NAME=<span class="st">emotion_system</span>
+API_PUBLIC_URL=<span class="st">https://your-api.onrender.com</span></pre>
+    </div>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dot" style="background:#ff5f57;"></div>
+        <div class="code-dot" style="background:#febc2e;"></div>
+        <div class="code-dot" style="background:#28c840;"></div>
+        <div class="code-filename">frontend/.env</div>
+      </div>
+      <pre>VITE_API_URL=<span class="st">https://your-api.onrender.com</span></pre>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!--  SECTION 6 — Viva Q&A                                 -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="section" id="viva">
+  <div class="sec-header">
+    <div class="sec-overline">Exam Preparation</div>
+    <div class="sec-title">Viva Q&A Guide</div>
+    <div class="sec-sub">Common viva questions with answers specific to this project — not generic theory</div>
+  </div>
+
+  <div class="viva-list" id="vivaList">
+
+    <div class="viva-card" onclick="toggleViva(this)">
+      <div class="viva-q">
+        <span><span class="q-label">Q1</span>Why is this system called "cloud-based"? What makes it different from a local system?</span>
+        <span class="chevron">▾</span>
+      </div>
+      <div class="viva-a">
+        <div class="viva-a-inner">
+          In a local system, the ML model, database, and files would all run on one machine. In our system: <br><br>
+          <strong>1.</strong> The FastAPI backend with DeepFace and Librosa runs on <strong>Render's cloud servers</strong> — not our laptop.<br>
+          <strong>2.</strong> Image and audio binaries are stored in <strong>MongoDB GridFS</strong> on Atlas (no local disk on the API server).<br>
+          <strong>3.</strong> Metadata (emotion, timestamp, file URL) is in <strong>MongoDB collections</strong> (<code>emotions</code>, <code>logs</code>, <code>system_stats</code>).<br>
+          <strong>4.</strong> The React frontend is hosted on <strong>Vercel's global CDN</strong>.<br><br>
+          No data touches any local machine. The system works from any device anywhere in the world via the internet.
+        </div>
+      </div>
+    </div>
+
+    <div class="viva-card" onclick="toggleViva(this)">
+      <div class="viva-q">
+        <span><span class="q-label">Q2</span>How does your system achieve scalability?</span>
+        <span class="chevron">▾</span>
+      </div>
+      <div class="viva-a">
+        <div class="viva-a-inner">
+          Our FastAPI backend is <strong>stateless</strong> — it stores no data in server memory between requests. Every request carries all necessary information. This is the key to scalability.<br><br>
+          Because there is no shared state, Render can run <strong>multiple instances</strong> of our FastAPI server behind a load balancer. 100 simultaneous users can each get their own worker process.<br><br>
+          <strong>MongoDB Atlas</strong> is a managed cluster — scale by choosing a larger tier; the same PyMongo API works for one user or many.<br><br>
+          <strong>GridFS</strong> stores large files inside the database; media is served via <code>GET /files/{id}</code> on the public API URL.
+        </div>
+      </div>
+    </div>
+
+    <div class="viva-card" onclick="toggleViva(this)">
+      <div class="viva-q">
+        <span><span class="q-label">Q3</span>Explain on-demand computing in your project with a specific example.</span>
+        <span class="chevron">▾</span>
+      </div>
+      <div class="viva-a">
+        <div class="viva-a-inner">
+          When a user clicks "Capture & Detect" in the browser:<br><br>
+          <strong>1.</strong> The image is sent via <code>POST /detect-face</code> to the Render cloud server.<br>
+          <strong>2.</strong> The server runs DeepFace.analyze() on that image — this is the on-demand compute.<br>
+          <strong>3.</strong> Result is returned and the server is idle again.<br><br>
+          There is <strong>no continuous processing</strong>. Compute happens only when a request arrives. If no user sends a request, no CPU is used. This matches the NIST definition of on-demand self-service. The cloud platform provisions compute resources dynamically.
+        </div>
+      </div>
+    </div>
+
+    <div class="viva-card" onclick="toggleViva(this)">
+      <div class="viva-q">
+        <span><span class="q-label">Q4</span>How is cloud storage used? Does the server save files locally?</span>
+        <span class="chevron">▾</span>
+      </div>
+      <div class="viva-a">
+        <div class="viva-a-inner">
+          <strong>No, the server never writes to local disk.</strong><br><br>
+          When an image arrives: <code>file_bytes = await file.read()</code> — this stays in RAM.<br>
+          Then: <code>GridFS.put(file_bytes, content_type=...)</code> — binary goes to Atlas; <code>file_url</code> points to <code>/files/{ObjectId}</code> on the API.<br>
+          The emotion document stores that URL in MongoDB.<br><br>
+          If the Render server restarts, <strong>no data is lost</strong> because data lives in Atlas. This is the cloud storage principle — persistence is in a managed service, not on the compute instance disk.
+        </div>
+      </div>
+    </div>
+
+    <div class="viva-card" onclick="toggleViva(this)">
+      <div class="viva-q">
+        <span><span class="q-label">Q5</span>What is the background task in your system and why is it a cloud feature?</span>
+        <span class="chevron">▾</span>
+      </div>
+      <div class="viva-a">
+        <div class="viva-a-inner">
+          We use <strong>APScheduler</strong> inside the FastAPI process to run a daily cleanup job at 02:00 UTC.<br><br>
+          This job: reads <code>auto_delete_enabled</code> from <code>system_stats</code> in MongoDB. If enabled, soft-deletes old <code>emotions</code> and removes matching GridFS files.<br><br>
+          This is a cloud feature because: <strong>(1)</strong> it runs on the cloud server 24/7, not on any user's machine. <strong>(2)</strong> Admin can toggle it remotely via POST /admin/toggle-auto-delete — no SSH needed. <strong>(3)</strong> It operates on Atlas (collections + GridFS) only.
+        </div>
+      </div>
+    </div>
+
+    <div class="viva-card" onclick="toggleViva(this)">
+      <div class="viva-q">
+        <span><span class="q-label">Q6</span>How does your system reduce hardware dependency?</span>
+        <span class="chevron">▾</span>
+      </div>
+      <div class="viva-a">
+        <div class="viva-a-inner">
+          <strong>The user's device only needs a browser, camera, and microphone.</strong><br><br>
+          All heavy computation runs on the cloud:<br>
+          • <strong>DeepFace</strong> (deep learning face analysis) → Render server<br>
+          • <strong>Librosa MFCC extraction</strong> (audio DSP) → Render server<br>
+          • <strong>Database queries</strong> → MongoDB Atlas<br><br>
+          A budget Android phone with Chrome can use this system. No Python, no GPU, no installation required on the client side. This is the "reduced hardware dependency" principle of cloud computing.
+        </div>
+      </div>
+    </div>
+
+    <div class="viva-card" onclick="toggleViva(this)">
+      <div class="viva-q">
+        <span><span class="q-label">Q7</span>What are MFCC features? How do they help in voice emotion detection?</span>
+        <span class="chevron">▾</span>
+      </div>
+      <div class="viva-a">
+        <div class="viva-a-inner">
+          <strong>MFCC = Mel-Frequency Cepstral Coefficients.</strong> They represent the short-term power spectrum of audio on a non-linear mel scale that approximates human hearing.<br><br>
+          In our system, we extract <strong>40 MFCC coefficients</strong> from each audio clip using Librosa, then compute their mean and standard deviation across time frames. We also extract:<br>
+          • <strong>Zero Crossing Rate (ZCR)</strong> — how often signal crosses zero (indicates voice activity)<br>
+          • <strong>Spectral Centroid</strong> — brightness/pitch proxy<br>
+          • <strong>Spectral Rolloff</strong> — frequency distribution<br>
+          • <strong>Chroma Features</strong> — tonal content<br>
+          • <strong>Tempo</strong> — speech rate (angry = faster, sad = slower)<br><br>
+          These features together distinguish emotional speech patterns.
+        </div>
+      </div>
+    </div>
+
+    <div class="viva-card" onclick="toggleViva(this)">
+      <div class="viva-q">
+        <span><span class="q-label">Q8</span>How does the weighted emotion fusion work?</span>
+        <span class="chevron">▾</span>
+      </div>
+      <div class="viva-a">
+        <div class="viva-a-inner">
+          The system runs face detection and voice detection independently. Each returns an emotion with a confidence score.<br><br>
+          Then <code>POST /combine-emotions</code> applies weighted averaging:<br>
+          <code>combined[emotion] = 0.60 × face_score[emotion] + 0.40 × voice_score[emotion]</code><br><br>
+          Face gets 60% weight because facial expressions are more consistently labelled. Voice gets 40%.<br><br>
+          <strong>Example:</strong> Face = happy (80% confidence), Voice = happy (60% confidence)<br>
+          Combined happy = 0.6×0.8 + 0.4×0.6 = 0.48 + 0.24 = <strong>0.72 (72%)</strong><br><br>
+          The system also detects agreement (both say same emotion) vs mixed signals (face ≠ voice) and generates a natural language analysis.
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  function show(id) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'))
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'))
+    document.getElementById(id).classList.add('active')
+    event.target.classList.add('active')
+  }
+
+  function toggleViva(card) {
+    const ans = card.querySelector('.viva-a')
+    const chev = card.querySelector('.chevron')
+    const open = ans.classList.contains('open')
+    // Close all
+    document.querySelectorAll('.viva-a').forEach(a => a.classList.remove('open'))
+    document.querySelectorAll('.chevron').forEach(c => c.classList.remove('open'))
+    if (!open) {
+      ans.classList.add('open')
+      chev.classList.add('open')
+    }
+  }
+</script>
+</body>
+</html>
