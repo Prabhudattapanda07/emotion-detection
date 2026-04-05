@@ -38,7 +38,6 @@ export default function Layout({ children }) {
             </div>
             <div>
               <p className="font-display font-800 text-white text-base leading-none">EmotiCloud</p>
-              <p className="text-dim text-xs mt-0.5 font-mono">v2.0 · Cloud AI</p>
             </div>
           </div>
         </div>
@@ -74,19 +73,7 @@ export default function Layout({ children }) {
           ))}
         </nav>
 
-        {/* Cloud info footer */}
-        <div className="px-4 pb-6 space-y-2">
-          <div className="text-xs text-muted font-mono px-1 mb-2">CLOUD LAYER</div>
-          {[
-            { icon: Cpu,           label: 'FastAPI · Render' },
-            { icon: CloudLightning, label: 'MongoDB · GridFS' },
-          ].map(({ icon: Icon, label }) => (
-            <div key={label} className="flex items-center gap-2 px-3 py-1.5 text-xs text-muted">
-              <Icon size={11} />
-              <span className="font-mono">{label}</span>
-            </div>
-          ))}
-        </div>
+        {/* Cloud info footer removed */}
       </aside>
 
       {/* ── Main content ────────────────────────────────── */}

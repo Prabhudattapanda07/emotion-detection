@@ -6,6 +6,7 @@
 import io
 import logging
 import os
+import subprocess
 import numpy as np
 
 logger = logging.getLogger("emotion-cloud.voice-utils")
@@ -51,7 +52,7 @@ def detect_emotion_from_audio(file_bytes: bytes) -> dict:
     try:
         y, sr = librosa.load(io.BytesIO(file_bytes), sr=22050, mono=True)
     except Exception as e:
-        y, sr = _load_with_pydub(file_bytes, original_error=e)
+        y, sr = _load_with_ffmpeg(file_bytes, original_error=e)
 
     if len(y) < sr * 0.5:          # < 0.5 seconds
         raise ValueError("Audio clip is too short (minimum 0.5 seconds).")
@@ -79,7 +80,7 @@ def detect_emotion_from_audio(file_bytes: bytes) -> dict:
     rolloff = float(np.mean(librosa.feature.spectral_rolloff(y=y, sr=sr)))
     chroma = float(np.mean(librosa.feature.chroma_stft(y=y, sr=sr)))
     tempo, _ = librosa.beat.beat_track(y=y, sr=sr)
-    tempo = float(tempo)
+    tempo = _as_float(tempo)
 
     # ── Rule-based emotion mapping (heuristic for demo) ──
     # In production: replace with trained RandomForest / LSTM model
@@ -158,36 +159,51 @@ def _rule_based_classifier(
     return {k: v / total2 for k, v in scores.items()}
 
 
-def _load_with_pydub(file_bytes: bytes, original_error: Exception):
-    """
-    Fallback decoder for formats like webm/ogg. Requires ffmpeg on PATH.
-    """
+def _as_float(value, default: float = 0.0) -> float:
     try:
-        from pydub import AudioSegment
-        from pydub.utils import which
+        return float(value)
     except Exception:
+        try:
+            arr = np.asarray(value).reshape(-1)
+            return float(arr[0]) if arr.size else float(default)
+        except Exception:
+            return float(default)
+
+
+def _load_with_ffmpeg(file_bytes: bytes, original_error: Exception):
+    """
+    Fallback decoder for formats like webm/ogg using ffmpeg directly.
+    """
+    ffmpeg_path = os.getenv("FFMPEG_PATH", "").strip()
+    if ffmpeg_path:
+        ffmpeg_path = ffmpeg_path.strip('"').strip("'")
+        if not os.path.exists(ffmpeg_path):
+            raise ValueError(f"FFMPEG_PATH does not exist: {ffmpeg_path}")
+    else:
+        ffmpeg_path = "ffmpeg"  # rely on PATH
+
+    try:
+        proc = subprocess.run(
+            [ffmpeg_path, "-i", "pipe:0", "-f", "wav", "pipe:1"],
+            input=file_bytes,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+    except FileNotFoundError:
         raise ValueError(
-            "Could not decode audio file. Install ffmpeg (and pydub) or record WAV. "
+            "Could not decode audio file. ffmpeg not found. "
+            "Set FFMPEG_PATH in .env or add ffmpeg to PATH. "
             f"Original error: {original_error}"
         )
 
-    try:
-        ffmpeg_path = os.getenv("FFMPEG_PATH", "").strip()
-        if ffmpeg_path:
-            AudioSegment.converter = ffmpeg_path
-        else:
-            found = which("ffmpeg")
-            if found:
-                AudioSegment.converter = found
-
-        audio = AudioSegment.from_file(io.BytesIO(file_bytes))
-        wav_buf = io.BytesIO()
-        audio.export(wav_buf, format="wav")
-        wav_buf.seek(0)
-        y, sr = librosa.load(wav_buf, sr=22050, mono=True)
-        return y, sr
-    except Exception as e:
+    if proc.returncode != 0:
+        err = proc.stderr.decode(errors="ignore").strip()
         raise ValueError(
-            "Could not decode audio file (ffmpeg/pydub fallback failed). "
-            f"Original error: {original_error}; Fallback error: {e}"
+            "Could not decode audio file (ffmpeg fallback failed). "
+            f"Original error: {original_error}; FFMPEG error: {err}"
         )
+
+    wav_buf = io.BytesIO(proc.stdout)
+    y, sr = librosa.load(wav_buf, sr=22050, mono=True)
+    return y, sr
