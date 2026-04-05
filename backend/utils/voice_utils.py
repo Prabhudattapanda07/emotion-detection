@@ -5,6 +5,7 @@
 
 import io
 import logging
+import os
 import numpy as np
 
 logger = logging.getLogger("emotion-cloud.voice-utils")
@@ -163,6 +164,7 @@ def _load_with_pydub(file_bytes: bytes, original_error: Exception):
     """
     try:
         from pydub import AudioSegment
+        from pydub.utils import which
     except Exception:
         raise ValueError(
             "Could not decode audio file. Install ffmpeg (and pydub) or record WAV. "
@@ -170,6 +172,14 @@ def _load_with_pydub(file_bytes: bytes, original_error: Exception):
         )
 
     try:
+        ffmpeg_path = os.getenv("FFMPEG_PATH", "").strip()
+        if ffmpeg_path:
+            AudioSegment.converter = ffmpeg_path
+        else:
+            found = which("ffmpeg")
+            if found:
+                AudioSegment.converter = found
+
         audio = AudioSegment.from_file(io.BytesIO(file_bytes))
         wav_buf = io.BytesIO()
         audio.export(wav_buf, format="wav")
