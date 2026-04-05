@@ -6,6 +6,7 @@ pymongo
 opencv-python
 numpy
 deepface
+tf-keras
 librosa
 soundfile
 pydub
